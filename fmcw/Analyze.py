@@ -55,7 +55,25 @@ def LowFilter(x):
     return filted
 
 
-def ComputeDistance(received, startIndex):
+def ComputeDistance(received, startIndex, startPosition):
+    if startPosition is None:
+        return
+    numberOfChirps = (received.shape[0] - startPosition) // (2 * NUMBER_OF_SAMPLES)
+    pseudo = PseudoTransmittedSignal(numberOfChirps)
+    initialBias = np.zeros(startPosition)
+    pseudo = np.concatenate((initialBias, pseudo))
+    filted = Filter(received)
+    n = filted.shape[0]
+    m = pseudo.shape[0]
+    pseudo = np.concatenate((pseudo, np.zeros(n - m)))
+    chirpSilenceLength = NUMBER_OF_SAMPLES * 2
+    indices = ComputeFrequencyBias(startPosition, chirpSilenceLength, pseudo, filted, numberOfChirps)
+    distanceBias = (indices - startIndex) * SAMPLE_FREQUENCY * SOUND_VELOCITY * T_FREQUENCY
+    distanceBias = distanceBias / FFT_ZERO_APPEND_LENGTH / (MAX_FREQUENCY - MIN_FREQUENCY)
+    return distanceBias
+
+
+def PlotDistance(received, startIndex):
     received = received[SAMPLE_FREQUENCY:-SAMPLE_FREQUENCY]
     startPosition = ComputeStartPosition(received)
     if startPosition is None:
@@ -73,6 +91,8 @@ def ComputeDistance(received, startIndex):
     distanceBias = (indices - startIndex) * SAMPLE_FREQUENCY * SOUND_VELOCITY * T_FREQUENCY
     distanceBias = distanceBias / FFT_ZERO_APPEND_LENGTH / (MAX_FREQUENCY - MIN_FREQUENCY)
     distanceBias = LowFilter(distanceBias)
+    distanceBias = distanceBias - distanceBias[0]
+    t = np.linspace(0, len(filted) * 0.16, len(filted) // 7680)
     plt.plot(distanceBias)
     plt.show()
     return distanceBias
