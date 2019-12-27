@@ -29,6 +29,7 @@ def handleConnection(con):
             f.write(data)
     process()
 
+
 def process():
     data = open('raw.wav', 'rb').read()
     data = np.frombuffer(data, dtype=np.short)
@@ -38,6 +39,28 @@ def process():
 def addHead():
     data = open('raw.wav', 'rb').read()
     wavfile.write('recv.wav', 48000, np.frombuffer(data, dtype=np.short))
+
+
+def test():
+    data = np.frombuffer(open('raw.wav', 'rb').read(), dtype=np.short)
+    last = 0
+    ds = []
+    start = 0
+    for i in range(len(data) // 7680):
+        cur = data[i * 7680:(i + 1) * 7680]
+        if i < 5:
+            continue
+        if i == 5:
+            start = ComputeStartPosition(cur)
+        else:
+            start = start + 4
+        d = ComputeDistance(cur, 0, start)
+        #d = d + last
+        #last = d
+        ds.append(d.mean())
+    ds = np.array(ds)
+    plt.plot(ds)
+    plt.show()
 
 
 def listen():
@@ -61,6 +84,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    test()
     #process()
-    # addHead()

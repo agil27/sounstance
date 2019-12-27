@@ -34,8 +34,7 @@ def Filter(x):
 
 def ComputeFrequencyBias(start, step, pseudo, filted, num_chirps):
     product = pseudo * filted
-    print(len(product))
-    product = LowFilter(product)
+    # product = LowFilter(product)
     indices = np.zeros(num_chirps)
     for i in range(
             start,
@@ -56,8 +55,6 @@ def LowFilter(x):
 
 
 def ComputeDistance(received, startIndex, startPosition):
-    if startPosition is None:
-        return
     numberOfChirps = (received.shape[0] - startPosition) // (2 * NUMBER_OF_SAMPLES)
     pseudo = PseudoTransmittedSignal(numberOfChirps)
     initialBias = np.zeros(startPosition)
@@ -66,6 +63,13 @@ def ComputeDistance(received, startIndex, startPosition):
     n = filted.shape[0]
     m = pseudo.shape[0]
     pseudo = np.concatenate((pseudo, np.zeros(n - m)))
+    pseudo = 10000 * pseudo
+    """
+    plt.figure()
+    plt.plot(pseudo, color='red', linestyle='--')
+    plt.plot(filted, color='yellow', linestyle='-')
+    plt.show()
+    """
     chirpSilenceLength = NUMBER_OF_SAMPLES * 2
     indices = ComputeFrequencyBias(startPosition, chirpSilenceLength, pseudo, filted, numberOfChirps)
     distanceBias = (indices - startIndex) * SAMPLE_FREQUENCY * SOUND_VELOCITY * T_FREQUENCY
@@ -86,6 +90,14 @@ def PlotDistance(received, startIndex):
     n = filted.shape[0]
     m = pseudo.shape[0]
     pseudo = np.concatenate((pseudo, np.zeros(n - m)))
+    pseudo = 10000 * pseudo
+    """
+    for i in range(numberOfChirps):
+        plt.figure()
+        plt.plot(pseudo[i * 7680:(i + 1) * 7680], color='red', linestyle='--')
+        plt.plot(filted[i * 7680:(i + 1) * 7680], color='yellow', linestyle='-')
+        plt.show()
+    """
     chirpSilenceLength = NUMBER_OF_SAMPLES * 2
     indices = ComputeFrequencyBias(startPosition, chirpSilenceLength, pseudo, filted, numberOfChirps)
     distanceBias = (indices - startIndex) * SAMPLE_FREQUENCY * SOUND_VELOCITY * T_FREQUENCY

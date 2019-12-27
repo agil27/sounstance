@@ -23,9 +23,11 @@ PEAK_THR = 220
 DC_TREND = 0.25
 
 
-def Preprocess(audio):
-    data = audio[SAMPLE_FREQUENCY:]
-    # data = audio
+def Preprocess(audio, clip=False):
+    if not clip:
+        data = audio[SAMPLE_FREQUENCY:]
+    else:
+        data = audio
     dataLength = data.shape[0] // (CIC_DEC * SEGMENT_SIZE)
     data = data[:dataLength * CIC_DEC * SEGMENT_SIZE]
     t = np.linspace(0, data.shape[0] / SAMPLE_FREQUENCY, data.shape[0] + 1)
@@ -33,29 +35,17 @@ def Preprocess(audio):
     return data, t, dataLength
 
 
-def CICFilter(x):
-    '''
-    :param x: 一个1xn向量
-    :return:
-    '''
-    y = x.reshape(CIC_DEC, -1)
-    y = np.sum(y, axis=0)
-    y = y.reshape(1, -1)
-    for _ in range(SECTION_N):
-        y = conv(y, np.ones((1, CIC_DELAY)), 'valid')
-    return y
-
-
-def GetBaseBand(x, t):
+def GetBaseBand(x, t, bias=0):
     dataLength = x.shape[0]
     yr = np.zeros((NUMBER_OF_SIGNALS, dataLength))
     yi = np.zeros((NUMBER_OF_SIGNALS, dataLength))
     for i in range(NUMBER_OF_SIGNALS):
-        xr = x * np.cos(2 * np.pi * FREQ[i] * t)
+        xr = x * np.cos(2 * np.pi * FREQ[i] * (t + bias))
+        xi = -x * np.sin(2 * np.pi * FREQ[i] * (t + bias))
         yr[i][:] = LowFilter(xr)
-        xi = -x * np.sin(2 * np.pi * FREQ[i] * t)
         yi[i][:] = LowFilter(xi)
     return yr, yi
+
 
 def ComputePhase(x):
     phi = np.angle(x)
@@ -96,10 +86,8 @@ def LowFilter(x):
     return filted
 
 
-def AnalyzeAudio(audio):
+def PlotAudio(audio):
     data, t, dataLength = Preprocess(audio)
-    # filted = BandFilter(data.reshape(-1))
-    # ShowFFTResult(filted)
     xr, xi = GetBaseBand(data, t)
     phi = ComputePhase(xr + np.complex(0, 1) * xi)
     d = CalculateDistance(phi)
@@ -109,9 +97,17 @@ def AnalyzeAudio(audio):
     return d
 
 
+def AnalyzeAudio(audio, bias=0):
+    data, t, dataLength = Preprocess(audio, clip=True)
+    xr, xi = GetBaseBand(data, t, bias)
+    phi = ComputePhase(xr + np.complex(0, 1) * xi)
+    d = CalculateDistance(phi)
+    return d
+
+
 def main():
     _, audio = wavfile.read('recv.wav')
-    AnalyzeAudio(audio)
+    PlotAudio(audio)
 
 
 if __name__ == '__main__':
