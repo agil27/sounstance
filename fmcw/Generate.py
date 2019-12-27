@@ -10,7 +10,7 @@ MAX_FREQUENCY = 20500
 SAMPLE_FREQUENCY = 48000
 NUMBER_OF_SAMPLES = int(T_FREQUENCY * SAMPLE_FREQUENCY) + 1
 WAVE_AMPLIFY_RATIO = 10000.0
-NUMBER_OF_CHIRPS = 588
+NUMBER_OF_CHIRPS = 5888
 
 
 def LinearChirpSignal(t, T, fmin, fmax):
@@ -35,10 +35,11 @@ def GetChirpClip():
 
 def GenerateSampleSignal(num_chirp):
     chirp = GetChirpClip()
-    data = np.array([])
+    data = np.zeros(num_chirp * 2 * NUMBER_OF_SAMPLES)
     silence = np.zeros(NUMBER_OF_SAMPLES)
     for i in range(num_chirp):
-        data = np.concatenate((data, chirp, silence))
+        data[2 * i * NUMBER_OF_SAMPLES : (2 * i + 1) * NUMBER_OF_SAMPLES] = chirp
+        data[(2 * i + 1) * NUMBER_OF_SAMPLES : (2 * i + 2) * NUMBER_OF_SAMPLES] = silence
     return data
 
 

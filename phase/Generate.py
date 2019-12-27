@@ -10,12 +10,13 @@ BASE_FREQUENCY = 4500
 DURATION = 300
 AMPLITUDE = 10000.0
 
-# 总共发射10个信号，频率从45000Hz开始，每次增加350Hz，FREQ即为得到的票i年率列表
+# 总共发射NUMBER_OF_SIGNALS个信号，频率从BASE_FREQUENCY Hz开始，每次增加FREQUENCY_INTERVAL Hz，FREQ即为得到的频率列表
 FREQ = np.linspace(BASE_FREQUENCY,
                    BASE_FREQUENCY + (NUMBER_OF_SIGNALS - 1) * FREQUENCY_INTERVAL,
                    NUMBER_OF_SIGNALS)
-# 时域上持续300秒，采样率为48000Hz
+# 时域上持续DURATION秒，采样率为SAMPLE_FREQUENCY Hz
 T = np.linspace(0, DURATION, SAMPLE_FREQUENCY * DURATION + 1)[:-1]
+
 
 def GenerateSignal():
     freq = FREQ.copy()

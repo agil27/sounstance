@@ -1,9 +1,6 @@
 import socket
 import threading
-import numpy as np
-from scipy.io import wavfile
 from Analyze import *
-import matplotlib.pyplot as plt
 from tkinter import Tk, Label, StringVar
 from tkinter.font import Font as TkFont
 
@@ -12,20 +9,38 @@ BANDWIDTH = 32768
 top = Tk()
 ft = TkFont(size=40)
 distanceVar = StringVar()
-
 distanceLabel = Label(top, height=9, width=16, font=ft, textvariable=distanceVar)
 distanceLabel.pack()
-
 distanceVar.set(0)
 
 
 def handleConnection(con):
     global distanceVar
     with open('raw.wav', 'wb') as f:
+        start = 0
+        index = -1
+        lastLength = 0
+        lastChirpNum = 0
         while True:
             data = con.recv(BANDWIDTH)
             if not data:
                 break
+            sig = np.frombuffer(data, dtype=np.short)
+            index = index + 1
+            if index < 5:
+                continue
+            if index == 5:
+                start = ComputeStartPosition(sig)
+                lastLength = sig.shape[0]
+                lastChirpNum = math.ceil(lastLength / NUMBER_OF_SAMPLES / 2)
+            else:
+                start = start - lastLength + lastChirpNum * 2 * NUMBER_OF_SAMPLES
+                lastLength = sig.shape[0]
+                lastChirpNum = math.ceil(lastLength / NUMBER_OF_SAMPLES / 2)
+            d = ComputeDistance(sig, 0, start)
+            print(d)
+            if d is not None and len(d) > 0 and d.mean() != 0:
+                distanceVar.set('%.3f' % d.mean())
             f.write(data)
     process()
 
@@ -39,28 +54,6 @@ def process():
 def addHead():
     data = open('raw.wav', 'rb').read()
     wavfile.write('recv.wav', 48000, np.frombuffer(data, dtype=np.short))
-
-
-def test():
-    data = np.frombuffer(open('raw.wav', 'rb').read(), dtype=np.short)
-    last = 0
-    ds = []
-    start = 0
-    for i in range(len(data) // 7680):
-        cur = data[i * 7680:(i + 1) * 7680]
-        if i < 5:
-            continue
-        if i == 5:
-            start = ComputeStartPosition(cur)
-        else:
-            start = start + 4
-        d = ComputeDistance(cur, 0, start)
-        #d = d + last
-        #last = d
-        ds.append(d.mean())
-    ds = np.array(ds)
-    plt.plot(ds)
-    plt.show()
 
 
 def listen():
@@ -84,6 +77,6 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    test()
+    main()
+    #test()
     #process()

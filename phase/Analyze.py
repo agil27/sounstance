@@ -12,30 +12,31 @@ SEGMENT_SIZE = 32
 SOUND_VELOCITY = 343
 LOWPASS_FREQUENCY = 80
 
-# CIC滤波器系数
-CIC_DEC = 16
-CIC_DELAY = 17
-SECTION_N = 4
-
-# LEVD系数
-POWER_THR = 5.5e5
-PEAK_THR = 220
-DC_TREND = 0.25
-
 
 def Preprocess(audio, clip=False):
+    '''
+    预处理，剪掉开头的一秒
+    :param audio: 音频数组
+    :param clip: 是否为片段
+    :return:
+    '''
     if not clip:
         data = audio[SAMPLE_FREQUENCY:]
     else:
         data = audio
-    dataLength = data.shape[0] // (CIC_DEC * SEGMENT_SIZE)
-    data = data[:dataLength * CIC_DEC * SEGMENT_SIZE]
     t = np.linspace(0, data.shape[0] / SAMPLE_FREQUENCY, data.shape[0] + 1)
     t = t[:-1]
-    return data, t, dataLength
+    return data, t
 
 
 def GetBaseBand(x, t, bias=0):
+    '''
+    计算乘以cos和sin后滤波得到的基带信号
+    :param x: 数据
+    :param t: 时间轴采样点
+    :param bias: 用来做乘法的cos和sin信号的相位的偏移
+    :return:
+    '''
     dataLength = x.shape[0]
     yr = np.zeros((NUMBER_OF_SIGNALS, dataLength))
     yi = np.zeros((NUMBER_OF_SIGNALS, dataLength))
@@ -48,6 +49,11 @@ def GetBaseBand(x, t, bias=0):
 
 
 def ComputePhase(x):
+    '''
+    根据正弦和余弦的基带信号得到的复数x计算相位角
+    :param x: cos(phi) + isin(phi)
+    :return:
+    '''
     phi = np.angle(x)
     for i in range(NUMBER_OF_SIGNALS):
         for j in range(1, x.shape[1]):
@@ -75,19 +81,34 @@ def CalculateDistance(phi):
 
 
 def BandFilter(x):
+    '''
+    带通滤波器，用于初始滤波
+    :param x: 原始数据值
+    :return:
+    '''
     b, a = signal.butter(8, [2 * FLOOR / SAMPLE_FREQUENCY, 2 * CEIL / SAMPLE_FREQUENCY], 'bandpass')
     filted = signal.filtfilt(b, a, x)
     return filted
 
 
 def LowFilter(x):
+    '''
+    低通滤波器，用于滤波得到基带
+    :param x: 相乘后的数据
+    :return:
+    '''
     b, a = signal.butter(6, 2 * LOWPASS_FREQUENCY / SAMPLE_FREQUENCY, 'lowpass')
     filted = signal.filtfilt(b, a, x)
     return filted
 
 
 def PlotAudio(audio):
-    data, t, dataLength = Preprocess(audio)
+    '''
+    将最终录制得到的信号作为整体可视化
+    :param audio: 整段信号
+    :return:
+    '''
+    data, t = Preprocess(audio)
     xr, xi = GetBaseBand(data, t)
     phi = ComputePhase(xr + np.complex(0, 1) * xi)
     d = CalculateDistance(phi)
@@ -98,7 +119,13 @@ def PlotAudio(audio):
 
 
 def AnalyzeAudio(audio, bias=0):
-    data, t, dataLength = Preprocess(audio, clip=True)
+    '''
+    对录制的信号片段计算当前的距离
+    :param audio: 信号片段
+    :param bias: 相位偏移
+    :return:
+    '''
+    data, t = Preprocess(audio, clip=True)
     xr, xi = GetBaseBand(data, t, bias)
     phi = ComputePhase(xr + np.complex(0, 1) * xi)
     d = CalculateDistance(phi)
